@@ -1,0 +1,22 @@
+name: publish
+on:
+  workflow_dispatch:
+jobs:
+  rel:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - name: Get artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh run download 44308624218 -R ${{ github.repository }} -D out
+          find out -type f -printf '%p %k KB\n'
+      - name: Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create fw-20261118 -R ${{ github.repository }} --title "ImmortalWrt 2026-11-18 MT7922" --notes "mt7921e + mt7922 firmware + r8125 2.5G" || true
+          gh release upload fw-20261118 out/*/* -R ${{ github.repository }} --clobber
