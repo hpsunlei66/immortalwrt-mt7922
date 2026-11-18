@@ -1,0 +1,59 @@
+name: build
+on:
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 350
+    steps:
+      - name: Free disk
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc
+          sudo apt-get clean
+          df -h /
+      - name: Deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential clang flex bison g++ gawk gcc-multilib g++-multilib gettext git libncurses-dev libssl-dev python3-dev rsync swig unzip zlib1g-dev libelf-dev file
+      - name: Clone source
+        run: |
+          git init immortalwrt
+          cd immortalwrt
+          git remote add origin https://github.com/immortalwrt/immortalwrt.git
+          git fetch --depth 1 origin 89f1ef18c888f841633f19f92655ee4b7f7716a4
+          git checkout FETCH_HEAD
+          git log -1 --oneline
+      - name: Feeds
+        run: |
+          cd immortalwrt
+          ./scripts/feeds update -a
+          ./scripts/feeds install -a
+      - name: Configure
+        run: |
+          cd immortalwrt
+          printf 'CONFIG_TARGET_x86=y\nCONFIG_TARGET_x86_64=y\n' > .config
+          make defconfig
+          cat >> .config <<'CFG'
+          CONFIG_TARGET_ROOTFS_PARTSIZE=2048
+          CONFIG_PACKAGE_kmod-r8125=y
+          CONFIG_PACKAGE_kmod-mt7921e=y
+          CONFIG_PACKAGE_kmod-mt7922-firmware=y
+          CONFIG_PACKAGE_kmod-mt7921-common=y
+          CONFIG_PACKAGE_kmod-mt792x-common=y
+          CONFIG_PACKAGE_kmod-mt76-core=y
+          CONFIG_PACKAGE_kmod-mt76-connac=y
+          CFG
+          make defconfig
+          grep -E 'kmod-(r8125|mt7921e|mt7922)|wpad' .config || true
+      - name: Build
+        run: |
+          cd immortalwrt
+          make -j$(nproc) 2>&1 | tail -n 300
+      - uses: actions/upload-artifact@v4
+        with:
+          name: immortalwrt-x86-64
+          path: |
+            immortalwrt/bin/targets/x86/64/*.img.gz
+            immortalwrt/bin/targets/x86/64/*.tar.gz
+          if-no-files-found: warn
+L
