@@ -12,11 +12,13 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh run download 44308624218 -R ${{ github.repository }} -D out
-          find out -type f -printf '%p %k KB\n'
+          RUN=$(gh api "repos/${{ github.repository }}/actions/workflows/build.yml/runs?per_page=1&status=success" --jq ".workflow_runs[0].id")
+          echo "run=$RUN"
+          gh run download "$RUN" -R ${{ github.repository }} -D out
+          ls -R out | head -40
       - name: Release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create fw-20261118 -R ${{ github.repository }} --title "ImmortalWrt 2026-11-18 MT7922" --notes "mt7921e + mt7922 firmware + r8125 2.5G" || true
+          gh release create fw-20261118 -R ${{ github.repository }} --title "ImmortalWrt 2026-11-19 MT7922 LuCI" --notes "mt7921e + mt7922 firmware + r8125 + luci" || true
           gh release upload fw-20261118 out/*/* -R ${{ github.repository }} --clobber
