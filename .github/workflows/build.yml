@@ -56,4 +56,3 @@ jobs:
             immortalwrt/bin/targets/x86/64/*.img.gz
             immortalwrt/bin/targets/x86/64/*.tar.gz
           if-no-files-found: warn
-L
